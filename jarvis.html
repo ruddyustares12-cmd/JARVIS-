@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jarvis</title>
+<style>
+:root{color-scheme:dark;--bg:#04080f;--ink:#d9f4ff;--dim:#6d8fa3;--arc:#3fd8ff;--hot:#ffb347;--line:#12303f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Rajdhani","Segoe UI",system-ui,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;padding:12px 16px;gap:10px;overflow:hidden}
+h1{margin:0;font-size:22px;font-weight:600;letter-spacing:.35em;color:var(--arc);text-indent:.35em}
+#st{font-size:14px;color:var(--dim);min-height:18px}
+#orbw{position:relative;width:190px;height:190px;flex:none;margin:6px 0}
+.ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--arc);opacity:.35}
+.r2{inset:14px;border-style:dashed;animation:spin 14s linear infinite}
+.r3{inset:30px;opacity:.6;border-color:var(--hot);border-width:1px}
+#orb{position:absolute;inset:48px;border-radius:50%;border:0;cursor:pointer;color:#001018;font:600 15px inherit;
+background:radial-gradient(circle at 40% 35%,#c9f6ff,var(--arc) 55%,#0b7e9e);box-shadow:0 0 28px #3fd8ff66;transition:transform .15s}
+#orb:active{transform:scale(.94)}
+#orb:focus-visible{outline:3px solid var(--hot);outline-offset:4px}
+body.on #orb{background:radial-gradient(circle at 40% 35%,#ffe3b8,var(--hot) 55%,#b8651a);box-shadow:0 0 40px #ffb34799;animation:pulse 1s ease-in-out infinite}
+body.talk #orb{animation:pulse .6s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{transform:scale(1.07)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+#log{flex:1;width:100%;max-width:560px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 2px}
+.m{padding:9px 13px;border-radius:12px;font-size:17px;line-height:1.35;max-width:88%;border:1px solid var(--line)}
+.u{align-self:flex-end;background:#0b1a26}
+.j{align-self:flex-start;background:#071e2a;border-color:#1c5a73}
+form{display:flex;gap:8px;width:100%;max-width:560px}
+input{flex:1;min-width:0;background:#0b1a26;border:1px solid var(--line);border-radius:10px;color:var(--ink);padding:11px 12px;font-size:16px}
+button.s{background:var(--arc);color:#001018;border:0;border-radius:10px;padding:0 16px;font-weight:600;font-size:16px}
+</style>
+</head>
+<body>
+<h1>JARVIS</h1>
+<div id="st">Toca el círculo y háblame</div>
+<div id="orbw"><div class="ring"></div><div class="ring r2"></div><div class="ring r3"></div><button id="orb" aria-label="Hablar con Jarvis">Hablar</button></div>
+<div id="log" aria-live="polite"></div>
+<form id="f"><input id="t" placeholder="O escríbeme aquí" autocomplete="off"><button class="s">Enviar</button></form>
+<script>
+const $=id=>document.getElementById(id),log=$("log"),st=$("st");
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null,voice=null;
+function pickVoice(){const v=speechSynthesis.getVoices();voice=v.find(x=>/^es[-_](419|MX|US|BO)/i.test(x.lang))||v.find(x=>/^es/i.test(x.lang))||null}
+if("speechSynthesis" in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function add(txt,cls){const d=document.createElement("div");d.className="m "+cls;d.textContent=txt;log.appendChild(d);log.scrollTop=log.scrollHeight}
+function say(txt){add(txt,"j");if(!("speechSynthesis" in window))return;speechSynthesis.cancel();
+const u=new SpeechSynthesisUtterance(txt);u.lang=voice?voice.lang:"es-419";if(voice)u.voice=voice;u.rate=1;
+u.onstart=()=>document.body.classList.add("talk");u.onend=u.onerror=()=>document.body.classList.remove("talk");speechSynthesis.speak(u)}
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[¿?¡!.,]/g," ").replace(/\s+/g," ").trim();
+const chistes=["¿Por qué los pájaros vuelan al sur? Porque caminando tardarían demasiado.","¿Qué le dice un aduanero a otro? Nada, solo revisa que no lleve nada raro.","Mi batería y yo tenemos algo en común: los dos vivimos al 1 por ciento."];
+function reply(raw){const q=norm(raw),d=new Date();
+if(/\b(hola|buenas|buenos dias|buenas tardes|buenas noches|que tal)\b/.test(q))return"Hola, Abiel. Estoy listo. ¿En qué te ayudo?";
+if(/\b(que hora|la hora)\b/.test(q))return"Son las "+d.toLocaleTimeString("es-BO",{hour:"2-digit",minute:"2-digit"})+".";
+if(/\b(fecha|que dia|a cuanto estamos)\b/.test(q))return"Hoy es "+d.toLocaleDateString("es-BO",{weekday:"long",day:"numeric",month:"long",year:"numeric"})+".";
+if(/\b(quien eres|como te llamas|tu nombre)\b/.test(q))return"Soy Jarvis, tu asistente personal. Versión uno: todavía estoy aprendiendo.";
+if(/\b(chiste|hazme reir)\b/.test(q))return chistes[Math.floor(Math.random()*chistes.length)];
+if(/\b(gracias)\b/.test(q))return"A la orden.";
+if(/\b(calcula|cuanto es|cuanto da)\b/.test(q)||/^[\d\s+\-*/x.()]+$/.test(q)){
+let e=q.replace(/calcula|cuanto es|cuanto da/g,"").replace(/\bmas\b/g,"+").replace(/\bmenos\b/g,"-").replace(/\b(por|x)\b/g,"*").replace(/\b(entre|dividido)\b/g,"/").replace(/\bde\b/g,"").trim();
+if(/^[\d\s+\-*/.()]+$/.test(e)&&e){try{const r=Function('"use strict";return ('+e+')')();if(isFinite(r))return"El resultado es "+Math.round(r*1e6)/1e6+"."}catch(_){}}
+return"No pude hacer esa cuenta. Prueba con algo como: cuánto es 25 por 4."}
+return"Escuché: "+raw+". Todavía no tengo cerebro de inteligencia artificial, eso llega en la versión dos."}
+function handle(txt){txt=txt.trim();if(!txt)return;add(txt,"u");say(reply(txt))}
+function listen(){
+if(!SR){st.textContent="Este navegador no tiene reconocimiento de voz. Usa Chrome o escribe abajo.";return}
+if(document.body.classList.contains("on")){rec&&rec.stop();return}
+speechSynthesis.cancel();rec=new SR();rec.lang="es-419";rec.interimResults=false;rec.maxAlternatives=1;
+rec.onstart=()=>{document.body.classList.add("on");st.textContent="Te escucho…"};
+rec.onresult=e=>handle(e.results[0][0].transcript);
+rec.onerror=e=>{st.textContent=e.error==="not-allowed"?"Permite el micrófono en Chrome para hablarme.":e.error==="no-speech"?"No te escuché. Intenta de nuevo.":"Error de voz: "+e.error};
+rec.onend=()=>{document.body.classList.remove("on");if(/escucho/.test(st.textContent))st.textContent="Toca el círculo y háblame"};
+st.textContent="Iniciando micrófono…";clearTimeout(window._w);window._w=setTimeout(()=>{if(!document.body.classList.contains("on")&&/Iniciando/.test(st.textContent))st.textContent="El micrófono no arrancó: esta página parece no tener acceso a la voz."},2500);try{rec.start()}catch(e){st.textContent="No se pudo iniciar: "+(e.name||e)}}
+$("orb").onclick=()=>{st.textContent="Iniciando…";try{listen()}catch(e){st.textContent="La voz está bloqueada aquí ("+(e.name||e)+"). Usa el micrófono del teclado.";$("t").focus()}};
+$("f").onsubmit=e=>{e.preventDefault();const i=$("t");handle(i.value);i.value=""};
+add("Sistema en línea. Toca el círculo y dime algo: la hora, la fecha, un chiste o una cuenta.","j");
+</script>
+</body>
+</html>
